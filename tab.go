@@ -121,6 +121,21 @@ func (t *Tab) TextContent(sel any, opts ...*Opts) string {
 	return ""
 }
 
+func (t *Tab) GetAttribute(sel any, key string, opts ...*Opts) string {
+	state := getState("GetAttribute", opts, &sel, t.Ctx)
+
+	var value string
+	state.Err = chromedp.Run(state.Ctx, chromedp.AttributeValue(sel, key, &value, nil, state.QueryOpts...))
+
+	if handleResult(state) {
+		if canLog(state) {
+			fmt.Print(" ->", key, "=", value)
+		}
+		return value
+	}
+	return ""
+}
+
 func (t *Tab) SetAttribute(sel any, key, value string, opts ...*Opts) {
 	state := getState("SetAttribute", opts, &sel, t.Ctx)
 
@@ -255,6 +270,21 @@ func (t *Tab) TextContents(sel any, opts ...*Opts) []string {
 	return nil
 }
 
+func (t *Tab) Evaluate(js string, opts ...*Opts) (any, error) {
+	state := getState("Eval", opts, nil, t.Ctx)
+
+	var result any
+	state.Err = chromedp.Run(state.Ctx, chromedp.Evaluate(js, &result))
+
+	if handleResult(state) {
+		if canLog(state) {
+			fmt.Print(" ->", result)
+		}
+		return result, nil
+	}
+	return "", state.Err
+}
+
 func (t *Tab) OpenInNewTab(sel any, opts ...*Opts) (*Tab, context.CancelFunc) {
 	state := getState("OpenInNewTab", opts, &sel, t.Ctx)
 
@@ -300,6 +330,26 @@ func (t *Tab) OpenInNewTab(sel any, opts ...*Opts) (*Tab, context.CancelFunc) {
 			Ctx:        newTabCtx,
 			Cancel:     newCancel,
 		}, newCancel
+	}
+
+	return nil, nil
+}
+
+func (t *Tab) OpenFrameInNewTab(sel any, opts ...*Opts) (*Tab, context.CancelFunc) {
+	state := getState("OpenFrameInNewTab", opts, &sel, t.Ctx)
+
+	// ch := chromedp.WaitNewTarget(state.Ctx, func(info *target.Info) bool {
+	// 	return info.URL != ""
+	// })
+
+	url := t.GetAttribute(sel, "src", opts...)
+
+	// targetID := <-ch
+	newTab, cancel := NewTab(t.Ctx)
+	newTab.GotoURL(url)
+
+	if handleResult(state) {
+		return newTab, cancel
 	}
 
 	return nil, nil
@@ -375,7 +425,7 @@ func canLog(state *State) bool {
 }
 
 func IsProduction() bool {
-	return os.Getenv("PROD") == "1"
+	return os.Getenv("D") != "1"
 }
 
 type State struct {
