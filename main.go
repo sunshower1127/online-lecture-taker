@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"log"
 	"os"
+	"strings"
 	"time"
 
 	"github.com/chromedp/cdproto/cdp"
@@ -52,7 +53,7 @@ func main() {
 		todoSubjects = lo.Compact(todoSubjects)
 
 		return len(todoSubjects) > 0
-	}, 10*time.Second, 1)
+	}, 60*time.Second, 1*time.Second)
 	fmt.Println("싸강있는 강의 파악. 대기시간:", dur)
 
 	var srcs []string
@@ -74,10 +75,12 @@ func main() {
 	lo.Map(subjectTabs, func(tuple lo.Tuple3[*Tab, context.CancelFunc, []string], index int) any {
 		subjectTab, cancel, titles := tuple.A, tuple.B, tuple.C
 		defer cancel()
+		fmt.Println(strings.Join(titles, ","))
+
 		time.Sleep(5 * time.Second) // TODO: time.Sleep 없애기 여기 왜 에러 -> 아마도 frame관련인거 같은데...
 		iframe := subjectTab.GetNode("#tool_content")
 		courseEntryNodeIds := lo.Filter(
-			subjectTab.GetNodeIDs(".xnmb-module_item-wrapper:has(.readystream, .mp4, .everlec) a", &Opts{Base: iframe}),
+			subjectTab.GetNodeIDs(".xnmb-module_item-wrapper:has(.readystream, .mp4, .everlec, .movie) a", &Opts{Base: iframe}),
 			func(nodeId cdp.NodeID, _ int) bool {
 				return lo.Contains(titles, subjectTab.Text(nodeId))
 			},
@@ -119,12 +122,12 @@ func main() {
 			if currentTime == "" || totalDuration == "" {
 				continue
 			}
-			if currentTime == totalDuration {
+			if currentTime >= totalDuration {
 				break
 			}
 
 			videoTab.Evaluate(`document.querySelector("video").play()`)
-			// fmt.Println("재생중", index, currentTime, totalDuration)
+			fmt.Println("재생중", index, currentTime, totalDuration)
 		}
 
 		return nil

@@ -377,7 +377,11 @@ func handleResult(state *State) bool {
 	}
 
 	if state.Err != nil && state.Ctx.Err() != context.DeadlineExceeded {
-		sleepIfErr(state.Err)
+		if IsProduction() {
+			panic(state.Err)
+		} else {
+			sleepIfErr(state.Err)
+		}
 	}
 
 	if canLog(state) {
