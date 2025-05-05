@@ -63,6 +63,10 @@ func main() {
 		tab.Click(" button", &Opts{Base: subject})     // 같은 탭의 버튼 여러개 클릭은 병렬화 불가
 		titles := tab.Texts(".xnsti-left:has(.video)", &Opts{Base: subject, WaitVisible: true})
 
+		titles = lo.Filter(titles, func(title string, _ int) bool {
+			return !strings.Contains(title, "English") && !strings.Contains(title, "中文")
+		})
+
 		if len(titles) == 0 {
 			return lo.Tuple3[*Tab, context.CancelFunc, []string]{}
 		}
@@ -70,6 +74,11 @@ func main() {
 		subjectTab, cancel := tab.OpenInNewTab(".xntc-count", &Opts{Base: subject, LogTag: fmt.Sprint(subject.NodeID, " 과목탭")})
 
 		return lo.T3(subjectTab, cancel, titles)
+	})
+
+	subjectTabs = lo.Filter(subjectTabs, func(tuple lo.Tuple3[*Tab, context.CancelFunc, []string], _ int) bool {
+		// Tab이 nil이 아닌 경우만 유효한 것으로 간주
+		return tuple.A != nil
 	})
 
 	lo.Map(subjectTabs, func(tuple lo.Tuple3[*Tab, context.CancelFunc, []string], index int) any {
