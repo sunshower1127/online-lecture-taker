@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"log"
 	"os"
+	"slices"
 	"strings"
 	"time"
 
@@ -123,6 +124,7 @@ func main() {
 			}
 			return nil
 		})
+		videoTab.Evaluate(`document.querySelector("video").playbackRate = 1.75`)
 
 		for {
 			time.Sleep(1 * time.Second)
@@ -131,7 +133,7 @@ func main() {
 			if currentTime == "" || totalDuration == "" {
 				continue
 			}
-			if currentTime >= totalDuration {
+			if convertTime(currentTime) >= convertTime(totalDuration) {
 				break
 			}
 
@@ -167,4 +169,35 @@ func NewAllocator() (context.Context, context.CancelFunc) {
 func NewBrowser(allocatorCtx context.Context) (context.Context, context.CancelFunc) {
 	return chromedp.NewContext(allocatorCtx)
 
+}
+
+func convertTime(timestring string) int {
+	// 1:23 -> 83
+	// 1:23:45 -> 5025
+	parts := strings.Split(timestring, ":")
+	slices.Reverse(parts)
+	totalSeconds := 0
+
+	for i, v := range parts {
+		totalSeconds += powInt(60, i) * parseInt(v)
+	}
+
+	return totalSeconds
+}
+
+func powInt(x, y int) int {
+	result := 1
+	for i := 0; i < y; i++ {
+		result *= x
+	}
+	return result
+}
+
+func parseInt(s string) int {
+	result := 0
+	for _, r := range s {
+		result *= 10
+		result += int(r - '0')
+	}
+	return result
 }
