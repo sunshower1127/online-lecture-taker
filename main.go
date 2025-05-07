@@ -124,21 +124,34 @@ func main() {
 			}
 			return nil
 		})
-		videoTab.Evaluate(`document.querySelector("video").playbackRate = 1.75`)
+
+		mem := -1
 
 		for {
-			time.Sleep(1 * time.Second)
+			time.Sleep(10 * time.Second)
+			videoTab.Click(".vc-pctrl-on-playing", &Opts{Timeout: 1 * time.Second})
+			videoTab.Click(".vc-pctrl-on-pause", &Opts{Timeout: 1 * time.Second})
+
+			videoTab.Click(".vc-pctrl-playback-rate-toggle-btn", &Opts{Timeout: 1 * time.Second})
+			videoTab.Click(".vc-pctrl-playback-rate-setbox>:nth-child(5)", &Opts{Timeout: 1 * time.Second})
+
 			currentTime := videoTab.Text(".vc-pctrl-curr-time", &Opts{WaitVisible: true, Timeout: 1 * time.Second})
 			totalDuration := videoTab.Text(".vc-pctrl-total-duration", &Opts{WaitVisible: true, Timeout: 1 * time.Second})
+
 			if currentTime == "" || totalDuration == "" {
 				continue
+
 			}
 			if convertTime(currentTime) >= convertTime(totalDuration) {
 				break
 			}
 
-			videoTab.Evaluate(`document.querySelector("video").play()`)
-			fmt.Println("재생중", index, currentTime, totalDuration)
+			if mem == convertTime(currentTime) {
+				panic("예상치 못한 강의 멈춤 -> 프로그램 다시 시작")
+			}
+			mem = convertTime(currentTime)
+
+			fmt.Println(index+1, "번째 강의", "재생중", currentTime, totalDuration)
 		}
 
 		return nil
